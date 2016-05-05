@@ -1,4 +1,5 @@
 #pragma once
+#include "afxcmn.h"
 
 
 // CSelectInterfaceDlg 对话框
@@ -20,4 +21,10 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
 	DECLARE_MESSAGE_MAP()
+private:
+	CListCtrl m_list;
+	void initView();
+	void initData();
+public:
+	virtual BOOL OnInitDialog();
 };
