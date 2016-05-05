@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 #include "NetWatcher.h"
-#include "NetWatcherDlg.h"
+#include "SelectInterfaceDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -57,7 +57,7 @@ BOOL CNetWatcherApp::InitInstance()
 	// 例如修改为公司或组织名
 	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
 
-	CNetWatcherDlg dlg;
+	CSelectInterfaceDlg dlg;
 	m_pMainWnd = &dlg;
 	INT_PTR nResponse = dlg.DoModal();
 	if (nResponse == IDOK)
