@@ -5,6 +5,7 @@
 #include "Utils.h"
 #include "NetWatcher.h"
 #include "SelectInterfaceDlg.h"
+#include "CaptureDlg.h"
 #include "afxdialogex.h"
 #include "pcap.h"
 
@@ -14,6 +15,8 @@ IMPLEMENT_DYNAMIC(CSelectInterfaceDlg, CDialogEx)
 
 CSelectInterfaceDlg::CSelectInterfaceDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_SELECTINTERFACEDLG, pParent)
+	, m_filter(_T(""))
+	, m_filename(_T("capture.cap"))
 {
 
 }
@@ -26,17 +29,19 @@ void CSelectInterfaceDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_INTERFACE, m_list);
+	DDX_Text(pDX, IDC_FILTER, m_filter);
+	DDX_Text(pDX, IDC_FILENAME, m_filename);
 }
 
 
 BEGIN_MESSAGE_MAP(CSelectInterfaceDlg, CDialogEx)
+	ON_BN_CLICKED(IDOK, &CSelectInterfaceDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
 BOOL CSelectInterfaceDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// TODO:  在此添加额外的初始化
 	initView();
 	initData();
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -88,3 +93,28 @@ void CSelectInterfaceDlg::initData()
 }
 
 // CSelectInterfaceDlg 消息处理程序
+void CSelectInterfaceDlg::OnBnClickedOk()
+{
+	UpdateData();
+	POSITION pos=m_list.GetFirstSelectedItemPosition();
+	int row;
+	if (pos == NULL)
+	{
+		AfxMessageBox(_T("请选择一个网卡"));
+		return;
+	}
+	if (m_filename.GetLength() == 0)
+	{
+		AfxMessageBox(_T("请输入文件名"));
+		return;
+	}
+	row = m_list.GetNextSelectedItem(pos);
+	ShowWindow(SW_HIDE);
+	CCaptureDlg capture_dlg;
+	capture_dlg.setFilename(m_filename);
+	capture_dlg.setFilter(m_filter);
+	capture_dlg.setInterfaceName(m_list.GetItemText(row, 0));
+	capture_dlg.setInterfaceDescription(m_list.GetItemText(row, 1));
+	capture_dlg.DoModal();
+	CDialogEx::OnOK();
+}

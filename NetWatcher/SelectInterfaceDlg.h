@@ -27,4 +27,7 @@ private:
 	void initData();
 public:
 	virtual BOOL OnInitDialog();
+	afx_msg void OnBnClickedOk();
+	CString m_filter;
+	CString m_filename;
 };

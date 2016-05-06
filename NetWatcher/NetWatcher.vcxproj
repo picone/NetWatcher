@@ -190,6 +190,8 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CaptureDlg.h" />
+    <ClInclude Include="Header.h" />
     <ClInclude Include="NetWatcher.h" />
     <ClInclude Include="NetWatcherDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -199,6 +201,7 @@
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CaptureDlg.cpp" />
     <ClCompile Include="NetWatcher.cpp" />
     <ClCompile Include="NetWatcherDlg.cpp" />
     <ClCompile Include="SelectInterfaceDlg.cpp" />
