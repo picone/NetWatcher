@@ -1,6 +1,11 @@
 #pragma once
 #include "stdafx.h"
 
+//以太网帧帧头类型
+#define TYPE_IPV4 0x0800
+#define TYPE_ARP 0x0806
+#define TYPE_IPV6 0x86DD
+
 typedef struct
 {
 	u_char dest[6];//目的MAC

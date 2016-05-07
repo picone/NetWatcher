@@ -7,6 +7,7 @@
 #include "CaptureDlg.h"
 #include "afxdialogex.h"
 #include "Header.h"
+#include "Utils.h"
 #include <atlconv.h>
 
 
@@ -19,14 +20,15 @@ CCaptureDlg::CCaptureDlg(CWnd* pParent /*=NULL*/)
 	, m_interface_description(_T(""))
 	, m_filename(_T(""))
 	, m_filter(_T(""))
-	,pPcap(NULL)
-	,capture_thread(NULL)
+	, pPcap(NULL)
+	, capture_thread(NULL)
+	, is_suspend(FALSE)
 	, m_packet_total(0)
 	, m_packet_ipv4(0)
 	, m_packet_ipv6(0)
 	, m_packet_arp(0)
 {
-
+	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
 CCaptureDlg::~CCaptureDlg()
@@ -43,6 +45,37 @@ void CCaptureDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IPV4, m_packet_ipv4);
 	DDX_Text(pDX, IDC_IPV6, m_packet_ipv6);
 	DDX_Text(pDX, IDC_ARP, m_packet_arp);
+	DDX_Control(pDX, IDC_COMMAND, m_command);
+}
+
+void CCaptureDlg::OnPaint()
+{
+	if (IsIconic())
+	{
+		CPaintDC dc(this); // 用于绘制的设备上下文
+
+		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
+
+		// 使图标在工作区矩形中居中
+		int cxIcon = GetSystemMetrics(SM_CXICON);
+		int cyIcon = GetSystemMetrics(SM_CYICON);
+		CRect rect;
+		GetClientRect(&rect);
+		int x = (rect.Width() - cxIcon + 1) / 2;
+		int y = (rect.Height() - cyIcon + 1) / 2;
+
+		// 绘制图标
+		dc.DrawIcon(x, y, m_hIcon);
+	}
+	else
+	{
+		CDialogEx::OnPaint();
+	}
+}
+
+HCURSOR CCaptureDlg::OnQueryDragIcon()
+{
+	return static_cast<HCURSOR>(m_hIcon);
 }
 
 void CCaptureDlg::setFilename(LPCTSTR filename)
@@ -98,6 +131,9 @@ void CCaptureDlg::incPacketArp()
 BOOL CCaptureDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	ShowWindow(SW_SHOW);
+	SetIcon(m_hIcon, TRUE);         // 设置大图标
+    SetIcon(m_hIcon, FALSE);        // 设置小图标
 
 	if (!initData())
 	{
@@ -167,24 +203,27 @@ DWORD WINAPI CCaptureDlg::captureThread(LPVOID lpParameter)
 void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *header,const u_char *pkt_data)
 {
 	CCaptureDlg *dlg = (CCaptureDlg*)user_p;
+	u_short type;
 	if (dlg == NULL) return;
 	pcap_dump((PUCHAR)dlg->getPcapDumper(), header, pkt_data);
 	ethernet_header *frame = (ethernet_header*)pkt_data;//二层帧解析
-	u_short type = (u_short)frame->type[0]*16*16+ (u_short)frame->type[1];
+	//u_short type = (u_short)frame->type[0]*16*16+ (u_short)frame->type[1];
+	type = Utils::atoi(frame->type,2);
 	switch (type)
 	{
-	case 0x0800://IPv4
+	case TYPE_IPV4://IPv4
 	{
 		dlg->incPacketIPv4();
 		ip_header *p = (ip_header *)(pkt_data + sizeof(ethernet_header));
 		//TODO
+
 		type = p->protocol;
 		break;
 	}
-	case 0x0806://ARP
+	case TYPE_ARP://ARP
 		dlg->incPacketArp();
 		break;
-	case 0x86DD://IPv6
+	case TYPE_IPV6://IPv6
 		dlg->incPacketIPv6();
 		break;
 	}
@@ -195,12 +234,33 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 // CCaptureDlg 消息处理程序
 void CCaptureDlg::OnBnClickedOk()
 {
-	TerminateThread(capture_thread, 0);
+	if (capture_thread != NULL)
+	{
+		if (!is_suspend)capture_thread->SuspendThread();
+		TerminateThread(capture_thread, 0);
+		delete capture_thread;
+		capture_thread = NULL;
+		pcap_breakloop(pPcap);
+		pcap_dump_flush(pDumpFile);
+		pcap_dump_close(pDumpFile);
+		pcap_close(pPcap);
+	}
 }
 
 void CCaptureDlg::OnBnClickedCommand()
 {
-	
+	if (is_suspend)
+	{
+		capture_thread->ResumeThread();
+		m_command.SetWindowTextW(_T("暂停"));
+		is_suspend = FALSE;
+	}
+	else
+	{
+		capture_thread->SuspendThread();
+		m_command.SetWindowTextW(_T("继续"));
+		is_suspend = TRUE;
+	}
 }
 
 afx_msg LRESULT CCaptureDlg::OnUpdateData(WPARAM wParam, LPARAM lParam)

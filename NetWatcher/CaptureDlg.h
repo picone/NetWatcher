@@ -1,5 +1,6 @@
 #pragma once
 #include "pcap.h"
+#include "afxwin.h"
 
 // CCaptureDlg 对话框
 
@@ -17,8 +18,10 @@ public:
 #endif
 
 protected:
+	HICON m_hIcon;
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-//	afx_msg LRESULT OnUpdateData(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnPaint();
+	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
 	void setFilename(LPCTSTR filename);
@@ -42,6 +45,7 @@ private:
 	pcap_t *pPcap;
 	pcap_dumper_t *pDumpFile;
 	CWinThread *capture_thread;
+	BOOL is_suspend;
 	UINT m_packet_total;
 	UINT m_packet_ipv4;
 	UINT m_packet_ipv6;
@@ -51,4 +55,6 @@ private:
 	static void captureCallback(u_char *state, const struct pcap_pkthdr *header, const u_char *pkt_data);
 protected:
 	afx_msg LRESULT OnUpdateData(WPARAM wParam, LPARAM lParam);
+private:
+	CButton m_command;
 };
