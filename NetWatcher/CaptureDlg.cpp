@@ -131,6 +131,7 @@ void CCaptureDlg::incPacketArp()
 BOOL CCaptureDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	ModifyStyleEx(0, WS_EX_APPWINDOW);
 	ShowWindow(SW_SHOW);
 	SetIcon(m_hIcon, TRUE);         // 设置大图标
     SetIcon(m_hIcon, FALSE);        // 设置小图标
