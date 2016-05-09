@@ -52,6 +52,7 @@ void CCaptureDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ICMP, m_packet_icmp);
 	DDX_Text(pDX, IDC_TCP, m_packet_tcp);
 	DDX_Text(pDX, IDC_UDP, m_packet_udp);
+	DDX_Control(pDX, IDC_PORT_LIST, m_list);
 }
 
 void CCaptureDlg::OnPaint()
@@ -149,6 +150,19 @@ void CCaptureDlg::incPacketUDP()
 	m_packet_udp++;
 }
 
+void CCaptureDlg::incPacketPort(u_short port)
+{
+	UINT old_num=0;
+	if (m_packet_port.Lookup(port, old_num))
+	{
+		m_packet_port[port] = old_num + 1;
+	}
+	else
+	{
+		m_packet_port[port] = 1;
+	}
+}
+
 BOOL CCaptureDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -157,6 +171,7 @@ BOOL CCaptureDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);         // 设置大图标
     SetIcon(m_hIcon, FALSE);        // 设置小图标
 
+	initView();
 	if (!initData())
 	{
 		if (pPcap != NULL)pcap_close(pPcap);
@@ -172,6 +187,13 @@ BEGIN_MESSAGE_MAP(CCaptureDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_COMMAND, &CCaptureDlg::OnBnClickedCommand)
 	ON_MESSAGE(WM_UPDATE_DATA, &CCaptureDlg::OnUpdateData)
 END_MESSAGE_MAP()
+
+void CCaptureDlg::initView()
+{
+	m_list.SetExtendedStyle(m_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_list.InsertColumn(0, _T("端口"), LVCFMT_LEFT, 50);
+	m_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 50);
+}
 
 BOOL CCaptureDlg::initData()
 {
@@ -234,8 +256,8 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 	case TYPE_IPV4://IPv4
 	{
 		dlg->incPacketIPv4();
-		ip_header *p = (ip_header *)(pkt_data + sizeof(ethernet_header));
-		switch (p->protocol)
+		ip_header *ip = (ip_header *)(pkt_data + sizeof(ethernet_header));
+		switch (ip->protocol)
 		{
 		case PROTOCAL_ICMP:
 		{
@@ -245,11 +267,15 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 		case PROTOCAL_TCP:
 		{
 			dlg->incPacketTCP();
+			tcp_header *tcp = (tcp_header*)(pkt_data + sizeof(ethernet_header) + ip->header_length * 4);
+			dlg->incPacketPort(Utils::atoi(tcp->dst_port, 2));
 			break;
 		}
 		case PROTOCAL_UDP:
 		{
 			dlg->incPacketUDP();
+			udp_header *udp = (udp_header*)(pkt_data + sizeof(ethernet_header) + ip->header_length * 4);
+			dlg->incPacketPort(Utils::atoi(udp->dst_port, 2));
 			break;
 		}
 		}
@@ -259,8 +285,19 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 		dlg->incPacketArp();
 		break;
 	case TYPE_IPV6://IPv6
+	{
 		dlg->incPacketIPv6();
+		ipv6_header *p = (ipv6_header *)(pkt_data + sizeof(ethernet_header));
+		switch (p->next_header)
+		{
+		case PROTOCAL_IPV6_ICMP:
+		{
+			dlg->incPacketICMP();
+			break;
+		}
+		}
 		break;
+	}
 	}
 	dlg->incPacketTotal();
 	dlg->SendMessage(WM_UPDATE_DATA, FALSE);
@@ -301,6 +338,22 @@ void CCaptureDlg::OnBnClickedCommand()
 
 afx_msg LRESULT CCaptureDlg::OnUpdateData(WPARAM wParam, LPARAM lParam)
 {
+	POSITION pos;
+	u_short port;
+	UINT num;
+	u_short row=0;
+	CString buffer;
+	m_list.DeleteAllItems();
+	pos = m_packet_port.GetStartPosition();
+	while (pos)
+	{
+		m_packet_port.GetNextAssoc(pos, port, num);
+		buffer.Format(_T("%d"),port);
+		m_list.InsertItem(row, buffer);
+		buffer.Format(_T("%d"), num);
+		m_list.SetItemText(row, 1, buffer);
+		row++;
+	}
 	UpdateData(wParam);
 	return 0;
 }

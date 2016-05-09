@@ -1,6 +1,7 @@
 #pragma once
 #include "pcap.h"
 #include "afxwin.h"
+#include "afxcmn.h"
 
 // CCaptureDlg ¶Ô»°¿ò
 
@@ -38,6 +39,7 @@ public:
 	void incPacketICMP();
 	void incPacketTCP();
 	void incPacketUDP();
+	void incPacketPort(u_short port);
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCommand();
@@ -46,11 +48,12 @@ private:
 	CString m_filter;
 	CString m_interface_name;
 	CString m_interface_description;
+	CButton m_command;
+	CListCtrl m_list;
 	pcap_t *pPcap;
 	pcap_dumper_t *pDumpFile;
 	CWinThread *capture_thread;
 	BOOL is_suspend;
-	CButton m_command;
 	UINT m_packet_total;
 	UINT m_packet_ipv4;
 	UINT m_packet_ipv6;
@@ -58,6 +61,8 @@ private:
 	UINT m_packet_icmp;
 	UINT m_packet_tcp;
 	UINT m_packet_udp;
+	CMap<u_short,u_short,UINT,UINT> m_packet_port;
+	void initView();
 	BOOL initData();
 	static DWORD WINAPI captureThread(LPVOID lpParameter);
 	static void captureCallback(u_char *state, const struct pcap_pkthdr *header, const u_char *pkt_data);
