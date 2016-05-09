@@ -6,6 +6,11 @@
 #define TYPE_ARP 0x0806
 #define TYPE_IPV6 0x86DD
 
+#define PROTOCAL_ICMP 0x01
+#define PROTOCAL_TCP 0x06
+#define PROTOCAL_UDP 0x11
+#define PROTOCAL_IPV6_ICMP 0x3A
+
 typedef struct
 {
 	u_char dest[6];//Ä¿µÄMAC

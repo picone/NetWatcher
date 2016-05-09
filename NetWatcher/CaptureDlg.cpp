@@ -27,6 +27,9 @@ CCaptureDlg::CCaptureDlg(CWnd* pParent /*=NULL*/)
 	, m_packet_ipv4(0)
 	, m_packet_ipv6(0)
 	, m_packet_arp(0)
+	, m_packet_icmp(0)
+	, m_packet_tcp(0)
+	, m_packet_udp(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -46,6 +49,9 @@ void CCaptureDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IPV6, m_packet_ipv6);
 	DDX_Text(pDX, IDC_ARP, m_packet_arp);
 	DDX_Control(pDX, IDC_COMMAND, m_command);
+	DDX_Text(pDX, IDC_ICMP, m_packet_icmp);
+	DDX_Text(pDX, IDC_TCP, m_packet_tcp);
+	DDX_Text(pDX, IDC_UDP, m_packet_udp);
 }
 
 void CCaptureDlg::OnPaint()
@@ -128,6 +134,21 @@ void CCaptureDlg::incPacketArp()
 	m_packet_arp++;
 }
 
+void CCaptureDlg::incPacketICMP()
+{
+	m_packet_icmp++;
+}
+
+void CCaptureDlg::incPacketTCP()
+{
+	m_packet_tcp++;
+}
+
+void CCaptureDlg::incPacketUDP()
+{
+	m_packet_udp++;
+}
+
 BOOL CCaptureDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -150,7 +171,6 @@ BEGIN_MESSAGE_MAP(CCaptureDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CCaptureDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDC_COMMAND, &CCaptureDlg::OnBnClickedCommand)
 	ON_MESSAGE(WM_UPDATE_DATA, &CCaptureDlg::OnUpdateData)
-//ON_REGISTERED_MESSAGE(WM_UPDATE_DATA, &CCaptureDlg::OnUpdateData)
 END_MESSAGE_MAP()
 
 BOOL CCaptureDlg::initData()
@@ -208,7 +228,6 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 	if (dlg == NULL) return;
 	pcap_dump((PUCHAR)dlg->getPcapDumper(), header, pkt_data);
 	ethernet_header *frame = (ethernet_header*)pkt_data;//¶þ²ãÖ¡½âÎö
-	//u_short type = (u_short)frame->type[0]*16*16+ (u_short)frame->type[1];
 	type = Utils::atoi(frame->type,2);
 	switch (type)
 	{
@@ -216,9 +235,24 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 	{
 		dlg->incPacketIPv4();
 		ip_header *p = (ip_header *)(pkt_data + sizeof(ethernet_header));
-		//TODO
-
-		type = p->protocol;
+		switch (p->protocol)
+		{
+		case PROTOCAL_ICMP:
+		{
+			dlg->incPacketICMP();
+			break;
+		}
+		case PROTOCAL_TCP:
+		{
+			dlg->incPacketTCP();
+			break;
+		}
+		case PROTOCAL_UDP:
+		{
+			dlg->incPacketUDP();
+			break;
+		}
+		}
 		break;
 	}
 	case TYPE_ARP://ARP
@@ -245,6 +279,7 @@ void CCaptureDlg::OnBnClickedOk()
 		pcap_dump_flush(pDumpFile);
 		pcap_dump_close(pDumpFile);
 		pcap_close(pPcap);
+		m_command.EnableWindow(FALSE);
 	}
 }
 

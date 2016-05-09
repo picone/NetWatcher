@@ -22,6 +22,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV Ö§³Ö
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
+	afx_msg LRESULT OnUpdateData(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 public:
 	void setFilename(LPCTSTR filename);
@@ -34,6 +35,9 @@ public:
 	void incPacketIPv4();
 	void incPacketIPv6();
 	void incPacketArp();
+	void incPacketICMP();
+	void incPacketTCP();
+	void incPacketUDP();
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCommand();
@@ -46,15 +50,15 @@ private:
 	pcap_dumper_t *pDumpFile;
 	CWinThread *capture_thread;
 	BOOL is_suspend;
+	CButton m_command;
 	UINT m_packet_total;
 	UINT m_packet_ipv4;
 	UINT m_packet_ipv6;
 	UINT m_packet_arp;
+	UINT m_packet_icmp;
+	UINT m_packet_tcp;
+	UINT m_packet_udp;
 	BOOL initData();
 	static DWORD WINAPI captureThread(LPVOID lpParameter);
 	static void captureCallback(u_char *state, const struct pcap_pkthdr *header, const u_char *pkt_data);
-protected:
-	afx_msg LRESULT OnUpdateData(WPARAM wParam, LPARAM lParam);
-private:
-	CButton m_command;
 };
