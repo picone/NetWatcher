@@ -45,6 +45,7 @@ public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCommand();
+	BOOL is_suspend;
 	BOOL isRunning();
 private:
 	CString m_filename;
@@ -57,7 +58,6 @@ private:
 	pcap_t *pPcap;
 	pcap_dumper_t *pDumpFile;
 	CWinThread *capture_thread;
-	BOOL is_suspend;
 	UINT m_packet_total;
 	UINT m_packet_ipv4;
 	UINT m_packet_ipv6;

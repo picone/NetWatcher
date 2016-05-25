@@ -205,11 +205,11 @@ END_MESSAGE_MAP()
 void CCaptureDlg::initView()
 {
 	m_port_src_list.SetExtendedStyle(m_port_src_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-	m_port_src_list.InsertColumn(0, _T("源端口"), LVCFMT_LEFT, 100);
-	m_port_src_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 100);
+	m_port_src_list.InsertColumn(0, _T("源端口"), LVCFMT_LEFT, 70);
+	m_port_src_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 70);
 	m_port_dst_list.SetExtendedStyle(m_port_dst_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-	m_port_dst_list.InsertColumn(0, _T("目标端口"), LVCFMT_LEFT, 100);
-	m_port_dst_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 100);
+	m_port_dst_list.InsertColumn(0, _T("目标端口"), LVCFMT_LEFT, 70);
+	m_port_dst_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 70);
 }
 
 BOOL CCaptureDlg::initData()
@@ -266,7 +266,7 @@ DWORD WINAPI CCaptureDlg::updateListViewThread(LPVOID lpParameter)
 	CCaptureDlg *dlg = (CCaptureDlg*)lpParameter;
 	while (dlg->isRunning())
 	{
-		dlg->SendMessage(WM_UPDATE_LISTVIEW);
+		if (!dlg->is_suspend)dlg->SendMessage(WM_UPDATE_LISTVIEW);
 		Sleep(5000);
 	}
 	return 0;
@@ -396,6 +396,7 @@ afx_msg LRESULT CCaptureDlg::OnUpdateListView(WPARAM wParam, LPARAM lParam)
 		m_port_src_list.SetItemText(row, 1, buffer);
 		row++;
 	}
+	row = 0;
 	m_port_dst_list.DeleteAllItems();
 	pos = m_packet_port_dst.GetStartPosition();
 	while (pos)
@@ -407,5 +408,5 @@ afx_msg LRESULT CCaptureDlg::OnUpdateListView(WPARAM wParam, LPARAM lParam)
 		m_port_dst_list.SetItemText(row, 1, buffer);
 		row++;
 	}
-	return capture_thread != NULL;
+	return 0;
 }
