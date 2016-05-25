@@ -10,7 +10,6 @@
 #include "Utils.h"
 #include <atlconv.h>
 
-
 // CCaptureDlg 对话框
 
 IMPLEMENT_DYNAMIC(CCaptureDlg, CDialogEx)
@@ -52,7 +51,8 @@ void CCaptureDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ICMP, m_packet_icmp);
 	DDX_Text(pDX, IDC_TCP, m_packet_tcp);
 	DDX_Text(pDX, IDC_UDP, m_packet_udp);
-	DDX_Control(pDX, IDC_PORT_LIST, m_list);
+	DDX_Control(pDX, IDC_PORT_SRC_LIST, m_port_src_list);
+	DDX_Control(pDX, IDC_PORT_DST_LIST, m_port_dst_list);
 }
 
 void CCaptureDlg::OnPaint()
@@ -150,16 +150,29 @@ void CCaptureDlg::incPacketUDP()
 	m_packet_udp++;
 }
 
-void CCaptureDlg::incPacketPort(u_short port)
+void CCaptureDlg::incPacketPortSrc(u_short port)
 {
 	UINT old_num=0;
-	if (m_packet_port.Lookup(port, old_num))
+	if (m_packet_port_src.Lookup(port, old_num))
 	{
-		m_packet_port[port] = old_num + 1;
+		m_packet_port_src[port] = old_num + 1;
 	}
 	else
 	{
-		m_packet_port[port] = 1;
+		m_packet_port_src[port] = 1;
+	}
+}
+
+void CCaptureDlg::incPacketPortDst(u_short port)
+{
+	UINT old_num = 0;
+	if (m_packet_port_dst.Lookup(port, old_num))
+	{
+		m_packet_port_dst[port] = old_num + 1;
+	}
+	else
+	{
+		m_packet_port_dst[port] = 1;
 	}
 }
 
@@ -186,13 +199,17 @@ BEGIN_MESSAGE_MAP(CCaptureDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CCaptureDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDC_COMMAND, &CCaptureDlg::OnBnClickedCommand)
 	ON_MESSAGE(WM_UPDATE_DATA, &CCaptureDlg::OnUpdateData)
+	ON_MESSAGE(WM_UPDATE_LISTVIEW, &CCaptureDlg::OnUpdateListView)
 END_MESSAGE_MAP()
 
 void CCaptureDlg::initView()
 {
-	m_list.SetExtendedStyle(m_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-	m_list.InsertColumn(0, _T("端口"), LVCFMT_LEFT, 50);
-	m_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 50);
+	m_port_src_list.SetExtendedStyle(m_port_src_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_port_src_list.InsertColumn(0, _T("源端口"), LVCFMT_LEFT, 100);
+	m_port_src_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 100);
+	m_port_dst_list.SetExtendedStyle(m_port_dst_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	m_port_dst_list.InsertColumn(0, _T("目标端口"), LVCFMT_LEFT, 100);
+	m_port_dst_list.InsertColumn(1, _T("包数"), LVCFMT_LEFT, 100);
 }
 
 BOOL CCaptureDlg::initData()
@@ -233,6 +250,7 @@ BOOL CCaptureDlg::initData()
 		return FALSE;
 	}
 	capture_thread = AfxBeginThread((AFX_THREADPROC)captureThread, this);
+	AfxBeginThread((AFX_THREADPROC)updateListViewThread, this);
 	return TRUE;
 }
 
@@ -240,6 +258,17 @@ DWORD WINAPI CCaptureDlg::captureThread(LPVOID lpParameter)
 {
 	CCaptureDlg *dlg = (CCaptureDlg*)lpParameter;
 	pcap_loop(dlg->getPcap(), 0, captureCallback, (PUCHAR)lpParameter);
+	return 0;
+}
+
+DWORD WINAPI CCaptureDlg::updateListViewThread(LPVOID lpParameter)
+{
+	CCaptureDlg *dlg = (CCaptureDlg*)lpParameter;
+	while (dlg->isRunning())
+	{
+		dlg->SendMessage(WM_UPDATE_LISTVIEW);
+		Sleep(5000);
+	}
 	return 0;
 }
 
@@ -268,14 +297,16 @@ void CCaptureDlg::captureCallback(u_char *user_p, const struct pcap_pkthdr *head
 		{
 			dlg->incPacketTCP();
 			tcp_header *tcp = (tcp_header*)(pkt_data + sizeof(ethernet_header) + ip->header_length * 4);
-			dlg->incPacketPort(Utils::atoi(tcp->dst_port, 2));
+			dlg->incPacketPortSrc(Utils::atoi(tcp->src_port, 2));
+			dlg->incPacketPortDst(Utils::atoi(tcp->dst_port, 2));
 			break;
 		}
 		case PROTOCAL_UDP:
 		{
 			dlg->incPacketUDP();
 			udp_header *udp = (udp_header*)(pkt_data + sizeof(ethernet_header) + ip->header_length * 4);
-			dlg->incPacketPort(Utils::atoi(udp->dst_port, 2));
+			dlg->incPacketPortSrc(Utils::atoi(udp->src_port, 2));
+			dlg->incPacketPortDst(Utils::atoi(udp->dst_port, 2));
 			break;
 		}
 		}
@@ -336,24 +367,45 @@ void CCaptureDlg::OnBnClickedCommand()
 	}
 }
 
+BOOL CCaptureDlg::isRunning()
+{
+	return capture_thread != NULL;
+}
+
 afx_msg LRESULT CCaptureDlg::OnUpdateData(WPARAM wParam, LPARAM lParam)
+{
+	UpdateData(wParam);
+	return 0;
+}
+
+afx_msg LRESULT CCaptureDlg::OnUpdateListView(WPARAM wParam, LPARAM lParam)
 {
 	POSITION pos;
 	u_short port;
 	UINT num;
-	u_short row=0;
+	u_short row = 0;
 	CString buffer;
-	m_list.DeleteAllItems();
-	pos = m_packet_port.GetStartPosition();
+	m_port_src_list.DeleteAllItems();
+	pos = m_packet_port_src.GetStartPosition();
 	while (pos)
 	{
-		m_packet_port.GetNextAssoc(pos, port, num);
-		buffer.Format(_T("%d"),port);
-		m_list.InsertItem(row, buffer);
+		m_packet_port_src.GetNextAssoc(pos, port, num);
+		buffer.Format(_T("%d"), port);
+		m_port_src_list.InsertItem(row, buffer);
 		buffer.Format(_T("%d"), num);
-		m_list.SetItemText(row, 1, buffer);
+		m_port_src_list.SetItemText(row, 1, buffer);
 		row++;
 	}
-	UpdateData(wParam);
-	return 0;
+	m_port_dst_list.DeleteAllItems();
+	pos = m_packet_port_dst.GetStartPosition();
+	while (pos)
+	{
+		m_packet_port_dst.GetNextAssoc(pos, port, num);
+		buffer.Format(_T("%d"), port);
+		m_port_dst_list.InsertItem(row, buffer);
+		buffer.Format(_T("%d"), num);
+		m_port_dst_list.SetItemText(row, 1, buffer);
+		row++;
+	}
+	return capture_thread != NULL;
 }

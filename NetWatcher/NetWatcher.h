@@ -9,7 +9,8 @@
 #endif
 
 #include "resource.h"		// 主符号
-#define WM_UPDATE_DATA WM_USER+100   
+#define WM_UPDATE_DATA WM_USER+100
+#define WM_UPDATE_LISTVIEW WM_USER+101
 
 // CNetWatcherApp: 
 // 有关此类的实现，请参阅 NetWatcher.cpp
