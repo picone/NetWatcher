@@ -72,4 +72,6 @@ private:
 	static DWORD WINAPI captureThread(LPVOID lpParameter);
 	static DWORD WINAPI updateListViewThread(LPVOID lpParameter);
 	static void captureCallback(u_char *state, const struct pcap_pkthdr *header, const u_char *pkt_data);
+public:
+	afx_msg void OnLvnColumnclickPortSrcList(NMHDR *pNMHDR, LRESULT *pResult);
 };

@@ -349,6 +349,10 @@ void CCaptureDlg::OnBnClickedOk()
 		pcap_close(pPcap);
 		m_command.EnableWindow(FALSE);
 	}
+	if (AfxMessageBox(_T("是否打开文件?"), MB_OKCANCEL) == IDOK) {
+		ShellExecute(NULL, _T("open"), _T("capture.cap"), NULL, NULL, SW_NORMAL);
+	}
+	CDialogEx::OnOK();
 }
 
 void CCaptureDlg::OnBnClickedCommand()
